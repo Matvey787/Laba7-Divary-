@@ -38,7 +38,7 @@ size_t hash_computation        (char* s);
 void   intput_table            (Elem_Table *main_table);
 Drug   input_sample            (Elem_Table *main_table);
 void   print_sample            (Drug passport, Elem_Table* main_table);
-void read_hash_table           (List *hash_table[], const char *file_name);
+void read_hash_table(List *hash_table[], const char *file_name, int* counter);
 
 void hash_table_entry     (List* hash_table[], Drug passport, unsigned int hash);
 void rec_hash_table_entry (List* hash_elem, Drug passport);

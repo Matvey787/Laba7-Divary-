@@ -25,8 +25,7 @@ int main() {
     size_t hash                          = 0;
 
     read_table  (main_table, "file_element_table");
-    read_hash_table(hash_table, "item.txt");
-    //print_table (main_table, "file_element_table");
+    read_hash_table(hash_table, "item.txt", &counter);
 
     while (1)
     {
@@ -51,13 +50,12 @@ int main() {
         else if (choice == 's')
         {
             printf("Введите примесь: \n");
-            // input_sample(main_table);
             passport = input_sample (main_table);
             drug_name_string        (tempString, passport, main_table);
             hash = hash_computation (tempString);
 
             int found = 0;
-// TODO twice cicle are cringe
+
             for (size_t i = 0; i < Hash_Table_Size_Const; i++)
             {
                 if (i == hash)
@@ -84,9 +82,7 @@ int main() {
         }
     }
 
-    printf           ("--before hash_table\n");
     write_hash_table (hash_table, "item.txt");
-    printf           ("--end of main\n");
 
     return 0;
 }
@@ -111,7 +107,7 @@ void read_table (Elem_Table *main_table, const char* fileName)
     fclose(rFile);
 }
 
-/* void read_hash_table(List *hash_table[], const char *file_name)
+void read_hash_table(List *hash_table[], const char *file_name, int* counter)
 {
     FILE *file_pointer = fopen(file_name, "r");
     if (!file_pointer) {
@@ -119,10 +115,12 @@ void read_table (Elem_Table *main_table, const char* fileName)
         return;
     }
 
-    char line[256]; // Буфер для чтения строки
-    while (fgets(line, sizeof(line), file_pointer)) // Читаем файл построчно
+    char line[256];
+    while (fgets(line, sizeof(line), file_pointer))
     {
-        char *token = strtok(line, " \n"); // Разбиваем строку на токены
+        line[strcspn(line, "\n")] = '\0';
+
+        char *token = strtok(line, " \t");
         int hash = -1;
         List *current = NULL;
 
@@ -130,137 +128,58 @@ void read_table (Elem_Table *main_table, const char* fileName)
         {
             if (strcasecmp(token, "hash:") == 0)
             {
-                // Читаем хэш
-                token = strtok(NULL, " \n");
+                token = strtok(NULL, " \t");
+                if (token == NULL) {
+                    fprintf(stderr, "Error: Missing hash value.\n");
+                    break;
+                }
                 hash = atoi(token);
+                if (hash < 0 || hash >= Hash_Table_Size_Const) {
+                    fprintf(stderr, "Error: Invalid hash value: %d\n", hash);
+                    break;
+                }
                 if (hash_table[hash] == NULL)
                 {
-                    // Создаем новый элемент, если его нет
                     hash_table[hash] = (List *)malloc(sizeof(List));
                     hash_table[hash]->next = NULL;
                     memset(&hash_table[hash]->elem, 0, sizeof(Drug));
                 }
                 current = hash_table[hash];
+                token = strtok(NULL, " \t");
             }
             else if (strcasecmp(token, "name:") == 0)
             {
-                // Читаем имя
-                token = strtok(NULL, " \n");
+                token = strtok(NULL, " \t");
+                if (token == NULL) {
+                    fprintf(stderr, "Error: Missing drug name.\n");
+                    break;
+                }
                 strncpy(current->elem.drug_name, token, 10);
+                token = strtok(NULL, " \t");
             }
             else if (strcasecmp(token, "add:") == 0)
             {
-                // Читаем аддитивы
+                ++(*counter);
                 int index = 0;
-                while ((token = strtok(NULL, " \n")) != NULL && strcasecmp(token, "formula:") != 0)
+                while ((token = strtok(NULL, " \t")) != NULL && strcasecmp(token, "formula:") != 0)
                 {
                     current->elem.additive[index++] = atoi(token);
+                }
+
+                if (token == NULL) {
+                    fprintf(stderr, "Error: Expected 'formula:' after 'add:'.\n");
+                    break;
                 }
             }
             else if (strcasecmp(token, "formula:") == 0)
             {
-                // Читаем формулу
-                int index = 0;
-                while ((token = strtok(NULL, " \n")) != NULL && strcasecmp(token, "->") != 0)
-                {
-                    current->elem.drug_formula[index].title = atoi(token);
-                    token = strtok(NULL, " \n");
-                    if (token == NULL) break; // Проверяем, что есть следующее число
-                    current->elem.drug_formula[index].amount = atoi(token);
-                    index++;
-                }
-            }
-            else if (strcasecmp(token, "->") == 0)
-            {
-                // Переходим к следующему элементу связного списка
-                current->next = (List *)malloc(sizeof(List));
-                current = current->next;
-                memset(&current->elem, 0, sizeof(Drug));
-                current->next = NULL;
-            }
-
-            token = strtok(NULL, " \n"); // Переходим к следующему токену
-        }
-    }
-
-    fclose(file_pointer);
-}
- */
-
- void read_hash_table(List *hash_table[], const char *file_name)
-{
-    FILE *file_pointer = fopen(file_name, "r");
-    if (!file_pointer) {
-        perror("Failed to open file");
-        return;
-    }
-
-    char line[256]; // Буфер для чтения строки
-    while (fgets(line, sizeof(line), file_pointer)) // Читаем файл построчно
-    {
-        char *token = strtok(line, " \n"); // Разбиваем строку на токены
-        int hash = -1;
-        List *current = NULL;
-
-        while (token != NULL)
-        {
-            if (strcasecmp(token, "hash:") == 0)
-            {
-                // Читаем хэш
-                token = strtok(NULL, " \n");
-                hash = atoi(token);
-                if (hash_table[hash] == NULL)
-                {
-                    // Создаем новый элемент, если его нет
-                    hash_table[hash] = (List *)malloc(sizeof(List));
-                    hash_table[hash]->next = NULL;
-                    memset(&hash_table[hash]->elem, 0, sizeof(Drug));
-                }
-                current = hash_table[hash];
-            }
-            else if (strcasecmp(token, "name:") == 0)
-            {
-                // Читаем имя
-                token = strtok(NULL, " \n");
-                strncpy(current->elem.drug_name, token, 10);
-            }
-            else if (strcasecmp(token, "add:") == 0)
-            {
-                // Читаем аддитивы
-                int index = 0;
-                while ((token = strtok(NULL, " \n")) != NULL && strcasecmp(token, "formula:") != 0)
-                {
-                    current->elem.additive[index++] = atoi(token);
-                }
-                // После обработки add: следующий токен должен быть formula:
-                if (token != NULL && strcasecmp(token, "formula:") == 0) {
-                    // Обрабатываем формулу
-                    int formula_index = 0;
-                    while ((token = strtok(NULL, " \n")) != NULL && strcasecmp(token, "->") != 0)
-                    {
-                        // Читаем title
-                        current->elem.drug_formula[formula_index].title = atoi(token);
-                        // Читаем amount
-                        token = strtok(NULL, " \n");
-                        if (token == NULL || strcasecmp(token, "->") == 0) {
-                            break;
-                        }
-                        current->elem.drug_formula[formula_index].amount = atoi(token);
-                        formula_index++;
-                    }
-                }
-            }
-            else if (strcasecmp(token, "formula:") == 0)
-            {
-                // Если formula: встретился отдельно (не после add:)
                 int formula_index = 0;
-                while ((token = strtok(NULL, " \n")) != NULL && strcasecmp(token, "->") != 0)
+                while ((token = strtok(NULL, " \t")) != NULL && strcasecmp(token, "->") != 0)
                 {
-                    // Читаем title
                     current->elem.drug_formula[formula_index].title = atoi(token);
-                    // Читаем amount
-                    token = strtok(NULL, " \n");
+                    token = strtok(NULL, " \t");
                     if (token == NULL || strcasecmp(token, "->") == 0) {
+                        fprintf(stderr, "Error: Incomplete formula data.\n");
                         break;
                     }
                     current->elem.drug_formula[formula_index].amount = atoi(token);
@@ -269,94 +188,25 @@ void read_table (Elem_Table *main_table, const char* fileName)
             }
             else if (strcasecmp(token, "->") == 0)
             {
-                // Переходим к следующему элементу связного списка
+                if (current == NULL) {
+                    fprintf(stderr, "Error: Unexpected '->' token.\n");
+                    break;
+                }
                 current->next = (List *)malloc(sizeof(List));
                 current = current->next;
                 memset(&current->elem, 0, sizeof(Drug));
                 current->next = NULL;
+                token = strtok(NULL, " \t");
             }
-
-            token = strtok(NULL, " \n"); // Переходим к следующему токену
+            else
+            {
+                fprintf(stderr, "Warning: Unknown token '%s'. Skipping.\n", token);
+            }
         }
     }
 
     fclose(file_pointer);
 }
-
-
-/* void read_hash_table(List *hash_table[], const char *file_name)
-{
-    FILE *file_pointer = fopen(file_name, "r");
-    if (!file_pointer) {
-        perror("Failed to open file");
-        return;
-    }
-
-    char line[256]; // Буфер для чтения строки
-    while (fgets(line, sizeof(line), file_pointer)) // Читаем файл построчно
-    {
-        char *token = strtok(line, " \n"); // Разбиваем строку на токены
-        int hash = -1;
-        List *current = NULL;
-
-        while (token != NULL)
-        {
-            if (strcasecmp(token, "hash:") == 0)
-            {
-                // Читаем хэш
-                token = strtok(NULL, " \n");
-                hash = atoi(token);
-                if (hash_table[hash] == NULL)
-                {
-                    // Создаем новый элемент, если его нет
-                    hash_table[hash] = (List *)malloc(sizeof(List));
-                    hash_table[hash]->next = NULL;
-                    memset(&hash_table[hash]->elem, 0, sizeof(Drug));
-                }
-                current = hash_table[hash];
-            }
-            else if (strcasecmp(token, "name:") == 0)
-            {
-                // Читаем имя
-                token = strtok(NULL, " \n");
-                strncpy(current->elem.drug_name, token, 10);
-            }
-            else if (strcasecmp(token, "add:") == 0)
-            {
-                // Читаем аддитивы
-                int index = 0;
-                while ((token = strtok(NULL, " \n")) != NULL && strcasecmp(token, "formula:") != 0)
-                {
-                    current->elem.additive[index++] = atoi(token);
-                }
-            }
-            else if (strcasecmp(token, "formula:") == 0)
-            {
-                // Читаем формулу
-                int index = 0;
-                while ((token = strtok(NULL, " \n")) != NULL && strcasecmp(token, "->") != 0)
-                {
-                    current->elem.drug_formula[index].title = atoi(token);
-                    token = strtok(NULL, " \n");
-                    current->elem.drug_formula[index].amount = atoi(token);
-                    index++;
-                }
-            }
-            else if (strcasecmp(token, "->") == 0)
-            {
-                // Переходим к следующему элементу связного списка
-                current->next = (List *)malloc(sizeof(List));
-                current = current->next;
-                memset(&current->elem, 0, sizeof(Drug));
-                current->next = NULL;
-            }
-
-            token = strtok(NULL, " \n"); // Переходим к следующему токену
-        }
-    }
-
-    fclose(file_pointer);
-} */
 
 void print_table (Elem_Table * main_table, const char* fileName)
 {
@@ -380,19 +230,12 @@ void print_table (Elem_Table * main_table, const char* fileName)
 
 size_t searchElem(const char* elemName, Elem_Table* main_table);
 
-// ------------------------------ input drugs ------------------------------
-
-// Function to input drug details
 Drug input_drugs(int *No, Elem_Table *main_table)
 {
     assert(main_table);
-    // If INPUTSAMPLE is not defined, create a new drug with a unique name
-    Drug passport = {0}; // Declare a drug structure
-
-    #ifndef INPUTSAMPLE
-        sprintf(passport.drug_name, "drug_%d", *No);
-        ++(*No);
-    #endif
+    Drug passport = {0};
+    sprintf(passport.drug_name, "drug_%d", *No);
+    ++(*No);
 
     size_t numberOfElements = 0;
 
@@ -401,17 +244,16 @@ Drug input_drugs(int *No, Elem_Table *main_table)
 
     char elem_name[10] = {0};
 
-    // Loop to input each element'string details
     for (int i = 0; i < numberOfElements; i++)
     {
         char first_letter;
         int valid_input = 0;
         do
         {
-            printf ("Element #%d: Enter first letter of the element: ", i + 1); // Prompt the user to enter the first letter
+            printf ("Element #%d: Enter first letter of the element: ", i + 1);
             scanf  (" %c", &first_letter);
 
-            while (getchar() != '\n'); // clear input buffer
+            while (getchar() != '\n');
         }
         while (!searchElemByFirstLetter(first_letter, main_table));
 
@@ -425,8 +267,6 @@ Drug input_drugs(int *No, Elem_Table *main_table)
 
         printf ("Amount:\n");
         scanf  ("%u", &passport.drug_formula[i].amount);
-
-
     }
 
     int j = 0;
@@ -436,7 +276,6 @@ Drug input_drugs(int *No, Elem_Table *main_table)
     while (scanf("%s", elem_name) != EOF)
     {
         passport.additive[j] = searchElem(elem_name, main_table);
-
         j++;
     }
 
@@ -485,24 +324,21 @@ void drug_name_string(char* string, Drug passport, Elem_Table* main_table)
     assert(string);
     assert(main_table);
 
-    string[0] = '\0'; // Очищаем строку
+    string[0] = '\0';
 
     for (int i = 0; i < 10; i++)
     {
-        if (passport.drug_formula[i].title == 0) break; // Прерываем, если достигли конца формулы
+        if (passport.drug_formula[i].title == 0) break;
 
-        // Ищем элемент в таблице по atomic_number
         for (int j = 0; j < Main_Table_Size_Const; j++)
         {
             if (passport.drug_formula[i].title == main_table[j].html_cod)
             {
-                // Добавляем имя элемента в строку
                 strcat(string, main_table[j].element_name);
                 break;
             }
         }
 
-        // Добавляем количество атомов
         char amount_str[5];
         sprintf(amount_str, "%u", passport.drug_formula[i].amount);
         strcat(string, amount_str);
@@ -514,14 +350,13 @@ size_t hash_computation(char* string)
     assert(string);
 
     unsigned long long int hash = 0;
-    const int prime = 31; // Простое число для полиномиального хеша
-    const int mod = 71;   // Ограничиваем хеш числом от 0 до 71
+    const int prime = 31;
+    const int mod = 71;
 
     for (int i = 0; string[i] != '\0'; i++)
     {
         hash = (hash * prime + string[i]) % mod;
     }
-    printf("hash = %llu", hash);
     return (size_t)hash;
 }
 
@@ -546,11 +381,9 @@ void intput_table (Elem_Table *main_table)
     }
 }
 
-
 Drug input_sample(Elem_Table *main_table)
 {
     assert(main_table);
-    // If INPUTSAMPLE is not defined, create a new drug with a unique name
     Drug passport = {0};
 
     size_t numberOfElements = 0;
@@ -567,9 +400,9 @@ Drug input_sample(Elem_Table *main_table)
         int  valid_input = 0;
         do
         {
-            printf ("Element #%d: Enter first letter of the element: ", i + 1); // Prompt the user to enter the first letter
+            printf ("Element #%d: Enter first letter of the element: ", i + 1);
             scanf  (" %c", &first_letter);
-            while (getchar() != '\n'); // clear input buffer
+            while (getchar() != '\n');
         }
 
         while (!searchElemByFirstLetter(first_letter, main_table));
@@ -583,7 +416,6 @@ Drug input_sample(Elem_Table *main_table)
             scanf  ("%s", elem_name);
 
             atomic_number = searchElem(elem_name, main_table);
-            //printf("atomic_number = %d\n", atomic_number);
             passport.drug_formula[index++].title = atomic_number;
 
         } while (atomic_number == 0);
@@ -634,7 +466,6 @@ size_t searchElem(const char* elemName, Elem_Table* main_table)
     {
         if (strcmp(main_table[i].element_name, elemName) == 0)
         {
-            //printf("atomic number: %u\n", main_table[i].atomic_number);
             return main_table[i].html_cod;
         }
     }
@@ -643,8 +474,6 @@ size_t searchElem(const char* elemName, Elem_Table* main_table)
 
     return 0;
 }
-
-
 
 void print_sample(Drug passport, Elem_Table* main_table)
 {
@@ -679,16 +508,14 @@ void print_sample(Drug passport, Elem_Table* main_table)
     }
 }
 
- void hash_table_entry (List* hash_table[], Drug passport, unsigned int hash)
+void hash_table_entry(List* hash_table[], Drug passport, unsigned int hash)
 {
     assert(hash_table);
 
     if (hash_table[hash] == NULL)
     {
         hash_table[hash] = (List*) calloc(1, sizeof(List));
-
         assert(hash_table[hash]);
-
         hash_table[hash]->elem = passport;
     }
     else
@@ -696,7 +523,6 @@ void print_sample(Drug passport, Elem_Table* main_table)
         rec_hash_table_entry(hash_table[hash], passport);
     }
 }
-
 
 void rec_hash_table_entry(List* hash_elem, Drug passport)
 {
@@ -708,71 +534,72 @@ void rec_hash_table_entry(List* hash_elem, Drug passport)
     }
     else
     {
-        hash_elem->next       = (List*)calloc(1, sizeof(List));
+        hash_elem->next = (List*)calloc(1, sizeof(List));
         hash_elem->next->elem = passport;
     }
 }
 
-void write_hash_table (List* hash_table[], const char* fileName)
+void write_hash_table(List* hash_table[], const char* fileName)
 {
-    assert (hash_table);
-    assert (fileName);
+    assert(hash_table);
+    assert(fileName);
 
     FILE* wFile = fopen(fileName, "w");
+    if (!wFile) {
+        perror("Failed to open file");
+        return;
+    }
 
-    for (size_t i = 0; i < 71; i++)
+    for (size_t i = 0; i < Hash_Table_Size_Const; i++)
     {
         if (hash_table[i])
         {
-            printf("Записываю в файл: hash: %lu, name: %s\n", i, hash_table[i]->elem.drug_name);
-            fprintf(wFile, "hash: %ld name: %s", i, hash_table[i]->elem.drug_name);
-            fprintf(wFile, " add:");
+            List* current = hash_table[i];
+            fprintf(wFile, "hash: %lu ", i);
 
-            int j = 0;
-
-            while (hash_table[i]->elem.additive[j] != 0)
+            while (current != NULL)
             {
-                fprintf(wFile, " %d", hash_table[i]->elem.additive[j]);
-                j++;
+                fprintf(wFile, "name: %s add:", current->elem.drug_name);
+
+                int j = 0;
+                while (current->elem.additive[j] != 0)
+                {
+                    fprintf(wFile, " %d", current->elem.additive[j]);
+                    j++;
+                }
+
+                fprintf(wFile, " formula:");
+                j = 0;
+                while (current->elem.drug_formula[j].title != 0)
+                {
+                    fprintf(wFile, " %d %u", current->elem.drug_formula[j].title,
+                            current->elem.drug_formula[j].amount);
+                    j++;
+                }
+
+                if (current->next != NULL)
+                {
+                    fprintf(wFile, " -> ");
+                }
+
+                current = current->next;
             }
 
-            j = 0;
-
-            fprintf(wFile, " formula:");
-
-            while (hash_table[i]->elem.drug_formula[j].title != 0)
-            {
-                printf  (" %d %u", hash_table[i]->elem.drug_formula[j].title, hash_table[i]->elem.drug_formula[j].amount);
-                fprintf (wFile, " %d %u", hash_table[i]->elem.drug_formula[j].title,
-                         hash_table[i]->elem.drug_formula[j].amount);
-
-                j++;
-            }
             fprintf(wFile, "\n");
-
-            if (hash_table[i]->next != NULL)
-            {
-                printf               ("start if\n");
-                rec_hash_table_entry (hash_table[i]->next, hash_table[i]->next->elem);
-                printf               ("end func\n");
-            }
         }
     }
 
-    fclose (wFile);
+    fclose(wFile);
 }
 
 void rec_write_hash_table(List* hash_elem, FILE** wFile)
 {
     if (hash_elem == NULL) return;
 
-    // Выводим "->" перед каждым следующим элементом списка
     fprintf(*wFile, "-> ");
 
-    // Выводим имя и хэш
     fprintf(*wFile, "name: %s", hash_elem->elem.drug_name);
 
-    // Выводим аддитивы
     fprintf(*wFile, " add:");
     int j = 0;
     while (hash_elem->elem.additive[j] != 0)
@@ -781,7 +608,6 @@ void rec_write_hash_table(List* hash_elem, FILE** wFile)
         j++;
     }
 
-    // Выводим формулу
     fprintf(*wFile, " formula:");
     j = 0;
     while (hash_elem->elem.drug_formula[j].title != 0)
@@ -792,7 +618,6 @@ void rec_write_hash_table(List* hash_elem, FILE** wFile)
 
     fprintf(*wFile, "\n");
 
-    // Рекурсивно обрабатываем следующий элемент списка
     if (hash_elem->next != NULL)
     {
         rec_write_hash_table(hash_elem->next, wFile);
