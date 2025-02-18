@@ -1,1 +1,1 @@
-hash: 31 name: drug_0 add: 913 918 921 923 formula:
+hash: 31 name: drug_0 add: 915 formula: 913 21
