@@ -10,7 +10,7 @@
 
 const size_t Main_Table_Size_Const = 24;
 const size_t Hash_Table_Size_Const = 71;
-const size_t Temp_String_Const     = 50;
+const size_t Temp_String_Const     = 1000;
 
 int main() {
 
@@ -480,52 +480,49 @@ void print_substance (Drug passport, Elem_Table* main_table)
 
 }
 
-void drug_name_string (char* string, Drug passport, Elem_Table* main_table)
+void drug_name_string(char* string, Drug passport, Elem_Table* main_table)
 {
-    //printf("drug_name_string started\n");
-    assert (string);
-    assert (main_table);
+    assert(string);
+    assert(main_table);
+
+    string[0] = '\0'; // Очищаем строку
 
     for (int i = 0; i < 10; i++)
     {
-        for (int j = 0; j < 24; j++)
+        if (passport.drug_formula[i].title == 0) break; // Прерываем, если достигли конца формулы
+
+        // Ищем элемент в таблице по atomic_number
+        for (int j = 0; j < Main_Table_Size_Const; j++)
         {
-            if (passport.drug_formula[i].title == main_table[j].atomic_number)
+            if (passport.drug_formula[i].title == main_table[j].html_cod)
             {
-                strcat(string, main_table->element_name);
+                // Добавляем имя элемента в строку
+                strcat(string, main_table[j].element_name);
+                break;
             }
         }
 
-        int amount = passport.drug_formula[i].amount;
-        char str[5];
-
-        sprintf (str, "%d", amount);
-        strcat  (string, str);
+        // Добавляем количество атомов
+        char amount_str[5];
+        sprintf(amount_str, "%u", passport.drug_formula[i].amount);
+        strcat(string, amount_str);
     }
 }
 
-size_t hash_computation (char* string)
+size_t hash_computation(char* string)
 {
     assert(string);
-    printf("string = %s\n", string);
 
-    unsigned long long int hash        = 0;
-    int                    len         = strlen(string);
-    int                    temp_cringe = 0;
-    int                    amount      = 0;
+    unsigned long long int hash = 0;
+    const int prime = 31; // Простое число для полиномиального хеша
+    const int mod = 71;   // Ограничиваем хеш числом от 0 до 71
 
-    for (int i = 0; i < len; i++)
+    for (int i = 0; string[i] != '\0'; i++)
     {
-        temp_cringe = (int) (string[i] - '0' + 1);
-        amount     += temp_cringe * pow(37, len - i - 1);
-        amount      = abs(amount);
+        hash = (hash * prime + string[i]) % mod;
     }
-
-    hash = amount % 71;
-
-    printf("hash = %llu\n", hash);
-
-    return hash;
+    printf("hash = %llu", hash);
+    return (size_t)hash;
 }
 
 void intput_table (Elem_Table *main_table)
